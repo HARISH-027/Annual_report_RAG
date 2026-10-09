@@ -127,15 +127,24 @@ class Agent:
         return plan, trace, tokens
 
     # ---------- answer
-    def answer(self, query, history=None, companies=None, skills=None):
+    def answer(self, query, history=None, companies=None, skills=None, emit=None):
+        """emit(stage, status, message, **extra) is optional and fires only at real pipeline boundaries."""
+        ev_ = emit or (lambda *a, **k: None)
         t0 = time.time()
         key = hashlib.md5(json.dumps([query.strip().lower(), sorted(companies or []), sorted(skills or []),
                                       bool(history)]).encode()).hexdigest()
         if key in self.cache:
             res = dict(self.cache[key])
             res["cached"] = True
+            ev_("cache", "completed", "Returned a previously computed answer for this exact question.")
             return res
+        ev_("plan", "running", "Understanding the question and choosing a route.")
         plan, trace, (pt1, ct1) = self.plan(query, history or [], companies, skills)
+        ev_("plan", "completed", f"Question classified as '{plan['intent']}'.", intent=plan["intent"],
+            companies=plan["companies"], route="llm" if pt1 else "rules")
+        for s in plan["skills"]:
+            ev_("skill", "completed", f"Loaded analysis skill: {self.skills[s].title}.", skill_name=s,
+                skill_title=self.skills[s].title)
         res = dict(plan=plan, trace=trace, evidence=[], answer="", grounding=None,
                    usage=dict(prompt=pt1, completion=ct1, calls=1 if pt1 else 0), cached=False)
         if plan["intent"] == "out_of_scope":
@@ -163,10 +172,14 @@ class Agent:
         queries = list(dict.fromkeys(queries))[:7]
         prefer_tables = plan["intent"] in ("financial", "compare") or bool(re.search(r"\d|total|amount|crore|lakh", plan["q"]))
         broad = plan["intent"] in ("risk", "painpoint", "observations", "audit")
+        ev_("retrieve", "running", f"Searching the reports ({len(queries)} queries, dense + keyword).")
         picked, best = self.retriever.search(queries, plan["companies"] or None, prefer_tables,
                                              final_k=C.FINAL_K + (2 if broad else 0))
         ev = self.retriever.pack(picked)
         res["evidence"] = ev
+        ev_("retrieve", "completed", f"Retrieved {len(ev)} evidence items.", count=len(ev),
+            sources=sorted({e["company"] for e in ev}),
+            tables=sum(1 for e in ev if e["kind"] == "table"))
         res["trace"].append(f"Retrieved {len(ev)} evidence items ({len(queries)} queries, hybrid dense+BM25, best dense {best:.2f})")
         if not ev:
             res["answer"] = NOT_FOUND
@@ -177,12 +190,16 @@ class Agent:
             f"{(e['title'] or e['section'])[:90]}{' | ' + e['stmt'] if e['stmt'] else ''}\n{e['text']}" for e in ev)
         skill_txt = "\n\n".join(f"SKILL ({self.skills[s].title}):\n{self.skills[s].body}" for s in plan["skills"])
         user = (f"{skill_txt}\n\n" if skill_txt else "") + f"EVIDENCE:\n{ev_txt}\n\nQUESTION: {plan['q']}"
+        ev_("generate", "running", "Drafting the answer from the retrieved evidence.")
         out, pt, ct = self.llm([{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}],
                                C.ANSWER_MAX_TOKENS)
         res["usage"]["prompt"] += pt
         res["usage"]["completion"] += ct
         res["usage"]["calls"] += 1
+        ev_("generate", "completed", "Answer drafted.")
+        ev_("verify", "running", "Checking citations and figures against the evidence.")
         res["answer"], res["grounding"] = self.verify(out.strip(), ev)
+        ev_("verify", "completed", "Grounding check finished.", grounding=res["grounding"]["status"])
         res["trace"].append("Answer generated and verified against evidence")
         return self._finish(res, key, t0)
 

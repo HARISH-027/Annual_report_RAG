@@ -1,0 +1,40 @@
+/* FINORA design tokens: warm, light, blue-free. */
+:root {
+  --bg: #FAF9F6;
+  --surface: #FFFFFF;
+  --surface-2: #F4F1EB;
+  --text: #302E29;
+  --text-2: #6B675E;          /* secondary text, >= 4.8:1 on --bg */
+  --border: #E8E3DA;
+  --border-strong: #D9D2C5;
+  --accent: #8A7652;          /* muted bronze (fills, borders) */
+  --accent-ink: #6F5D3C;      /* bronze for text/links on light, >= 5.5:1 */
+  --accent-soft: #F1EBDD;
+  --sage: #A7A98B;
+  --sage-ink: #5E6048;
+  --sand: #C7A889;
+  --success: #64816A;
+  --success-ink: #4B6651;
+  --success-soft: #E8EFE8;
+  --warning: #B18A50;
+  --warning-ink: #86642E;
+  --warning-soft: #F6EEDC;
+  --error: #B66D63;
+  --error-ink: #94493F;
+  --error-soft: #F7E7E3;
+
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  --r-sm: 6px; --r-md: 10px; --r-lg: 16px;
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px;
+  --shadow-sm: 0 1px 2px rgba(48, 46, 41, .05);
+  --shadow-md: 0 6px 24px rgba(48, 46, 41, .08);
+  --t-fast: 120ms; --t-med: 220ms; --t-slow: 420ms;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  --sidebar-w: 264px; --rail-w: 348px;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-fast: 0ms; --t-med: 0ms; --t-slow: 0ms; }
+}
