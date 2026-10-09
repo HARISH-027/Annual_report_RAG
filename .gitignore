@@ -1,0 +1,31 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Data (large / not for version control)
+export/
+export_fy2425/
+index/
+
+# Logs
+*.log
+nohup.out
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Model / HF caches
+.cache/
+huggingface/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
